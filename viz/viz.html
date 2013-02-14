@@ -1,0 +1,127 @@
+<html>
+<head>
+	<script type="text/javascript" src="scripts/code.js"></script>
+	
+	<script type="text/javascript">
+
+		var OFFSET = 100;
+		var SVGNS = "http://www.w3.org/2000/svg";
+		var BAR_WIDTH = 5;
+
+		var context;
+		if (typeof AudioContext !== "undefined") {
+		    context = new AudioContext();
+		} else if (typeof webkitAudioContext !== "undefined") {
+		    context = new webkitAudioContext();
+		} else {
+		    throw new Error('AudioContext not supported. :(');
+		}
+
+		var request = new XMLHttpRequest();
+		request.open("GET", "audio/track.mp3", true);
+		request.responseType = "arraybuffer";
+		 
+
+		var svg;
+
+		var analyser;
+
+		// Our asynchronous callback
+		request.onload = function() {
+		    var audioData = request.response;
+		    var soundSrc = createSoundSource(audioData);
+
+			analyser = context.createAnalyser();
+		    soundSrc.connect(analyser);
+		    analyser.connect(context.destination);
+
+		    soundSrc.noteOn(context.currentTime);
+
+			svg = window.document.querySelector("#stage");
+			createSvgBars(svg);
+		    draw();
+		};
+
+		request.send();
+
+		function createSoundSource(data){
+			// create a sound source
+	        var soundSource = context.createBufferSource();
+
+	        // The Audio Context handles creating source buffers from raw binary
+	        soundBuffer = context.createBuffer(data, true/* make mono */);
+	      
+	        // Add the buffered data to our object
+	        soundSource.buffer = soundBuffer;
+
+	        return soundSource;
+		}
+
+		function createSvgBars(svgNode){
+			for(var i = 0 ; i < 1024; i++){
+				var bar = window.document.createElementNS(SVGNS, "rect");
+				bar.x.baseVal.value = i*BAR_WIDTH;
+				bar.y.baseVal.value = 300;
+				bar.width.baseVal.value = BAR_WIDTH;
+				bar.height.baseVal.value = BAR_WIDTH;
+				bar.style.strokeWidth = "1px";
+				bar.style.stroke = "#000";
+				bar.style.fill = "#ffff00"
+				bar.id ="bar_" + i;
+				svgNode.appendChild(bar);
+			}
+
+			var specpath = window.document.createElementNS(SVGNS, "path");
+			specpath.y = 300;
+			specpath.id ="specpath";
+			specpath.style.fill = "none";
+			specpath.style.stroke = "#ff0000";
+			specpath.style.strokeWidth = "2px";
+			svgNode.appendChild(specpath);
+		}
+
+		function draw(){
+		  // See http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+		  window.requestAnimationFrame(draw, svg);
+		  // New typed array for the raw frequency data
+		  freqData = new Uint8Array(analyser.frequencyBinCount);
+		  // Put the raw frequency into the newly created array
+		  analyser.getByteFrequencyData(freqData);
+
+		  var path = window.document.querySelector("#specpath");
+		  
+		  var points = "";
+
+		  // This loop draws all the bars
+		  for (var i = 0; i < freqData.length - OFFSET; i++) {
+		    // Work out the hight of the current bar
+		    // by getting the current frequency
+
+		    var magnitude = freqData[i + OFFSET];
+		    var yy = 300 - magnitude;
+		    // Draw a bar from the bottom up (cause for the "-magnitude")
+
+		    var bar = window.document.querySelector("#bar_" + i);
+		    bar.height.baseVal.value = magnitude;
+		    bar.y.baseVal.value = yy;
+
+		    var point = {x:i*BAR_WIDTH, y: 300 - magnitude*0.5};
+
+		    if(i == 0){
+		    	points += "M " + point.x + " " + point.y + " ";
+		    }else{
+		    	points += "L " + point.x + " " + point.y+ " ";
+		    }
+		  }
+
+		  path.setAttribute("d", points);
+
+		}
+
+	</script>
+</head>
+<body>
+<svg id="stage">
+</svg>
+</body>
+</html>
