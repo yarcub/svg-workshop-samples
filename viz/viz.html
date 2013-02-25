@@ -6,10 +6,17 @@
 
 		var OFFSET = 100;
 		var SVGNS = "http://www.w3.org/2000/svg";
+		var XLINKNS = "http://www.w3.org/1999/xlink";
+		var WIDTH = 5;
 
+		var elements = [];
 
 		var currentWindowOnload = window.onload;
-      	
+      	var svgNode;
+
+      	var line;
+
+
       	window.onload = function() {
         if (currentWindowOnload) {
           currentWindowOnload();
@@ -19,26 +26,50 @@
       	};
 
 		window.exerciseAPI.onReady = function createSvgBars(){
-			/*
-			Create SVG elements used in the vizualization
-			*/
+			for(var i=0; i<1024; i++){
+				var bar = window.document.createElementNS(SVGNS, "rect");
+				bar.x.baseVal.value = i*WIDTH;
+				bar.y.baseVal.value = 300;
+				bar.width.baseVal.value = WIDTH;
+				bar.setAttribute("fill", "yellow");
+				bar.setAttribute("stroke", "black");
+				elements.push(bar);
+				svgNode.appendChild(bar);
+			}
+
+			line = window.document.createElementNS(SVGNS, "path");
+			line.setAttribute("stroke", "red");
+			line.setAttribute("stroke-width", "4px");
+			line.setAttribute("fill", "none")
+			svgNode.appendChild(line);
+			
 		}
 
 		window.exerciseAPI.onData = function draw(freqData){
 
-		  for (var i = 0; i < freqData.length - OFFSET; i++) {
-		    var magnitude = freqData[i + OFFSET];
-		    /*
-		    	Modify svg to react to the frequencies
-		    */
+		  var d = "M0,300 ";
+
+		  for (var i = 0; i < 1024; i++) {
+		    var magnitude = freqData[i];
+		    var element = elements[i];
+		    element.height.baseVal.value = magnitude;
+		    element.y.baseVal.value = 300 - magnitude;
+
+		    d += " L";
+		    d += (i*WIDTH);
+		    d += ","
+		    d += (350 - magnitude);
 		  }
+
+		  line.setAttribute("d", d);
 
 		}
 
 	</script>
 </head>
 <body>
-<svg id="stage">
+<svg id="stage" xmlns:xlink="http://www.w3.org/1999/xlink">
+	
 </svg>
 </body>
 </html>
